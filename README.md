@@ -1,1 +1,4 @@
-# TravellingSalesmanProblem_CUDA
+# Vehicle Routing Problem in CUDA
+The vehicle routing problem (VRP) is a standard combinatorial optimization problem. The objective of the VRP is to find the optimal set of routes for a fleet of vehicles to traverse in order to deliver to a given set of customers. This problem is a generalization of the travelling salesperson problem (TSP). We often think about this problem in the context of delivering goods stored at a central depot to customers who have a demand for these goods. The objective of the VRP is to minimize the total route distance. This objective function can be further complicated in extensions to the VRP, such as the capacitated VRP (CVRP) or the electric VRP (EVRP). 
+
+This problem is NP-hard. Because of this, we will be using heuristics based solvers such as the Genetic Algorithm (GA) and Ant Colony Optimization (ACO) accelerated in CUDA.
