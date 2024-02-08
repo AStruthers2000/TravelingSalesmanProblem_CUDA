@@ -2,7 +2,7 @@
 // Created by Strut on 2/8/2024.
 //
 #include "HelperFunctions.cuh"
-
+#include "../Problem/ProblemInstance.cuh"
 #include <iostream>
 #include <iomanip>
 

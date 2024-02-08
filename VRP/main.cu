@@ -7,6 +7,7 @@
 
 //our includes
 #include "Utils/HelperFunctions.cu"
+#include "Problem/ProblemInstance.cu"
 
 __global__ void print_info()
 {
@@ -31,6 +32,9 @@ int main()
 
     HelperFunctions::Host_PrintArray<int>(test, 4);
     HelperFunctions::Host_PrintArray<float>(test1, 5, 16);
+
+    Node node_test[5] = {{40,50, 0}, {25, 85, 1}, {24, 29, 2}, {97, 2, 3}, {40, 50, 4}};
+    HelperFunctions::Host_PrintArray<Node>(node_test, 5);
 
 
     return EXIT_SUCCESS;
