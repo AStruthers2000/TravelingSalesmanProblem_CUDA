@@ -1,6 +1,12 @@
+//system includes
 #include <iostream>
+
+//cuda includes
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+
+//our includes
+#include "Utils/HelperFunctions.cu"
 
 __global__ void print_info()
 {
@@ -14,8 +20,18 @@ __global__ void print_info()
 
 int main()
 {
+
     print_info<<<4, 32>>>();
     cudaDeviceSynchronize();
     cudaDeviceReset();
-    return 0;
+
+    //these are not allocated on the heap, so we don't have to free
+    int test[4] = {1, 2, 3, 4};
+    float test1[5] = {1.00012512, 2.3, 9.0, 0.2 + 0.1, 1e7};
+
+    HelperFunctions::Host_PrintArray<int>(test, 4);
+    HelperFunctions::Host_PrintArray<float>(test1, 5, 16);
+
+
+    return EXIT_SUCCESS;
 }
