@@ -14,7 +14,8 @@
 
 using namespace std;
 
-
+// evaporation rate must be an element of [0, 1]
+const int PHEROMONE_EVAPORATION_RATE = 0.01;
 
 void myexit();
 
@@ -29,9 +30,47 @@ void getSTSPAdjacencyMatrix(double* matrix, string location, int problemSize) {}
 
 void getATSPAdjacencyMatrix(int* matrix, string location, int nullKey) {}
 
+void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, int* antHistories, int antHistoriesSize, int numAnts, int iteration, int problemSize){
+
+    // perform pheromone evaporation on every edge
+    for(int i = 0; i < problemSize; i++){
+        for(int j = 0; j < problemSize; j++){
+            pheromoneMatrix[i*problemSize +j ] = pheromoneMatrix[i*problemSize + j] * PHEROMONE_EVAPORATION_RATE;
+        }
+    }
+
+
+
+    // for each ant history
+    for(int i = 0; i < antHistoriesSize/(problemSize+1); i++){
+
+        // for each edge traveled
+        for(int j = 0; j <= problemSize; j++){
+            int startingCity = antHistories[(problemSize + 1) * i + j];
+            int endingCity;
+
+            if(j == problemSize){ // loop back around to starting index if at the end of the path
+                endingCity = antHistories[(problemSize + 1) * i + 0];
+            }
+            else{
+                endingCity = antHistories[(problemSize + 1) * i + j + 1];
+            }
+
+            // at the edge traveled, update the pheromone matrix according to the fitness of the ant's solution
+
+            // get the amount to add to the edge (ant's total tour length is stored at the last index of the history)
+            double pheromoneToAdd = 1/(antHistories[i * (problemSize+1) + problemSize]);
+
+            pheromoneMatrix[problemSize * startingCity + endingCity] = pheromoneMatrix[problemSize * startingCity + endingCity] + pheromoneToAdd;
+        }
+    }
+
+}
+
 void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIterations){
     // populate an adjacency matrix of the problem
-    double* adjacencyMatrix = (double*)malloc(sizeof(double) * problemSize * problemSize);
+    int adjacencyMatrixSize = sizeof(double) * problemSize * problemSize;
+    double* adjacencyMatrix = (double*)malloc(adjacencyMatrixSize);
 
 
     getSTSPAdjacencyMatrix(adjacencyMatrix, location, problemSize);
@@ -39,28 +78,43 @@ void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIteratio
 
     // create coppies of the problems on the device
     double* device_adjacencyMatrix;
-    cudaHandleError(cudaMalloc(&device_adjacencyMatrix, sizeof(double) * problemSize * problemSize));
-    cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, sizeof(double) * problemSize * problemSize, cudaMemcpyHostToDevice));
+    cudaHandleError(cudaMalloc(&device_adjacencyMatrix, adjacencyMatrixSize));
+    cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, adjacencyMatrixSize, cudaMemcpyHostToDevice));
 
 
 
     // allocate pheromone matrix on host and device
-    double* pheromoneMatrix = (double*)malloc(sizeof(double) * problemSize * problemSize);
+    int pheromoneMatrixSize = sizeof(double) * problemSize * problemSize;
+    double* pheromoneMatrix = (double*)malloc(pheromoneMatrixSize);
 
     double* device_pheromoneMatrix;
-    cudaHandleError(cudaMalloc(&device_pheromoneMatrix, sizeof(double) * problemSize * problemSize));
+    cudaHandleError(cudaMalloc(&device_pheromoneMatrix, pheromoneMatrixSize));
 
 
 
-    // allocate ant histories on matrix
-    int* antHistories = (int*)malloc(sizeof(int) * numAnts * problemSize);
+    // allocate ant histories on matrix (with an additoinal comun to hold the distance traveled so far)
+    int antHistoriesSize = sizeof(int) * numAnts * (problemSize + 1);
+    int* antHistories = (int*)malloc(antHistoriesSize);
 
     int* device_antHistories;
-    cudaHandleError(cudaMalloc(&device_antHistories, sizeof(int) * numAnts * problemSize));
+    cudaHandleError(cudaMalloc(&device_antHistories, antHistoriesSize));
 
-    // invoke kernel
 
-    // check for kernel errors (immediately after kernel execution)
+    // for the given number of iterations
+    for(int i = 0; i < numIterations; i++){
+        
+
+
+        // invoke kernel
+        // check for kernel errors (immediately after kernel execution)
+
+        // retrieve ant histories
+        cudaHandleError(cudaMemcpy(antHistories, device_antHistories, antHistoriesSize, cudaMemcpyDeviceToHost));
+
+        // update pheromone matrix
+        updatePheromoneMatrix(pheromoneMatrix, pheromoneMatrixSize, antHistories, antHistoriesSize, numAnts, i, problemSize);
+    }
+    
 
 
 
@@ -84,26 +138,29 @@ void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIteratio
 
 void ACOsolveATSP(int problemSize, string location, int numAnts, int numIterations, int nullKey){
     // populate an adjacency matrix of the problem
-    int* adjacencyMatrix = (int*)malloc(sizeof(int) * problemSize * problemSize);
+    int adjacencyMatrixSize = sizeof(int) * problemSize * problemSize;
+    int* adjacencyMatrix = (int*)malloc(adjacencyMatrixSize);
 
     getATSPAdjacencyMatrix(adjacencyMatrix, location, nullKey);
 
 
     // create coppies of the problems on the device
     int* device_adjacencyMatrix;
-    cudaHandleError(cudaMalloc(&device_adjacencyMatrix, sizeof(int) * problemSize * problemSize));
-    cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, sizeof(int) * problemSize * problemSize, cudaMemcpyHostToDevice));
+    cudaHandleError(cudaMalloc(&device_adjacencyMatrix, adjacencyMatrixSize));
+    cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, adjacencyMatrixSize, cudaMemcpyHostToDevice));
 
 
     // allocate pheromone matrix on host and device
-    double* pheromoneMatrix = (double*)malloc(sizeof(double) * problemSize * problemSize);
+    int pheromoneMatrixSize = sizeof(double) * problemSize * problemSize;
+    double* pheromoneMatrix = (double*)malloc(pheromoneMatrixSize);
     
     double* device_pheromoneMatrix;
-    cudaHandleError(cudaMalloc(&device_pheromoneMatrix, sizeof(double) * problemSize * problemSize));
+    cudaHandleError(cudaMalloc(&device_pheromoneMatrix, pheromoneMatrixSize));
 
 
-    // allocate ant histories on matrix
-    int* antHistories = (int*)malloc(sizeof(int) * numAnts * problemSize);
+    // allocate ant histories on matrix (with an additional column at the end to hold the total distance traveled so far)
+    int antHistoriesSize = sizeof(int) * numAnts * (problemSize + 1);
+    int* antHistories = (int*)malloc(antHistoriesSize);
 
     int* device_antHistories;
     cudaHandleError(cudaMalloc(&device_antHistories, sizeof(int) * numAnts * problemSize));
