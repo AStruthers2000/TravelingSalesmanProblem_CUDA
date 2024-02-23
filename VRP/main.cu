@@ -10,6 +10,9 @@
 //#include "Problem/ProblemInstance.cu"
 #include "Algorithms/AntColony.cuh"
 #include "ModelParameters.h"
+#include <iostream>
+
+using namespace std;
 
 
 
@@ -22,6 +25,9 @@ void cudaHandleError(cudaError_t error) {
         error = cudaDeviceReset();
     }
 }
+void getSTSPAdjacencyMatrix(double* matrix, string location, int problemSize) {}
+
+void getATSPAdjacencyMatrix(int* matrix, string location, int nullKey) {}
 
 void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIterations){
     // populate an adjacency matrix of the problem
@@ -76,7 +82,7 @@ void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIteratio
     free(antHistories);
 }
 
-void ACOsolveATSP(int problemSIze, string location, int numAnts, int numIterations, int nullKey){
+void ACOsolveATSP(int problemSize, string location, int numAnts, int numIterations, int nullKey){
     // populate an adjacency matrix of the problem
     int* adjacencyMatrix = (int*)malloc(sizeof(int) * problemSize * problemSize);
 
@@ -116,14 +122,14 @@ void ACOsolveATSP(int problemSIze, string location, int numAnts, int numIteratio
     // free all used memory
 
         // device
-    cudaHandleError(cudaFree(device_ATSPAdjacencyMatrix));
-    cudaHandleError(cudaFree(device_ATSPpheromoneMatrix));
-    cudaHandleError(cudaFree(device_ATSPAntHistories));
+    cudaHandleError(cudaFree(device_adjacencyMatrix));
+    cudaHandleError(cudaFree(device_pheromoneMatrix));
+    cudaHandleError(cudaFree(device_antHistories));
 
         // host
-    free(ATSPAdjacencyMatrix);
-    free(ATSPpheromoneMatrix);
-    free(ATSPAntHistories);
+    free(adjacencyMatrix);
+    free(pheromoneMatrix);
+    free(antHistories);
 
 }
 
