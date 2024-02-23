@@ -31,7 +31,7 @@ void getATSPAdjacencyMatrix(int* matrix, string location, int nullKey) {}
 
 void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIterations){
     // populate an adjacency matrix of the problem
-    double* adjacencyMatrix = (double*)malloc(sizeof(double) * STSPproblemSize * STSPproblemSize);
+    double* adjacencyMatrix = (double*)malloc(sizeof(double) * problemSize * problemSize);
 
 
     getSTSPAdjacencyMatrix(adjacencyMatrix, location, problemSize);
