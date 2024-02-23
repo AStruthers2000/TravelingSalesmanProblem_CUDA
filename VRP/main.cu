@@ -28,7 +28,7 @@ void cudaHandleError(cudaError_t error) {
 }
 void getSTSPAdjacencyMatrix(double* matrix, string location, int problemSize) {}
 
-void getATSPAdjacencyMatrix(int* matrix, string location, int nullKey) {}
+void getATSPAdjacencyMatrix(double* matrix, string location, int nullKey) {}
 
 void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, int* antHistories, int antHistoriesSize, int numAnts, int iteration, int problemSize){
 
@@ -67,16 +67,10 @@ void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, int
 
 }
 
-void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIterations){
-    // populate an adjacency matrix of the problem
+void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIterations){
+    
+    // create coppies of the problem on the device
     int adjacencyMatrixSize = sizeof(double) * problemSize * problemSize;
-    double* adjacencyMatrix = (double*)malloc(adjacencyMatrixSize);
-
-
-    getSTSPAdjacencyMatrix(adjacencyMatrix, location, problemSize);
-
-
-    // create coppies of the problems on the device
     double* device_adjacencyMatrix;
     cudaHandleError(cudaMalloc(&device_adjacencyMatrix, adjacencyMatrixSize));
     cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, adjacencyMatrixSize, cudaMemcpyHostToDevice));
@@ -127,80 +121,12 @@ void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIteratio
     // free all used memory
 
         // device
-    cudaHandleError(cudaFree(device_adjacencyMatrix));
     cudaHandleError(cudaFree(device_pheromoneMatrix));
     cudaHandleError(cudaFree(device_antHistories));
 
         // host
-    free(adjacencyMatrix);
     free(pheromoneMatrix);
     free(antHistories);
-}
-
-void ACOsolveATSP(int problemSize, string location, int numAnts, int numIterations, int nullKey){
-    // populate an adjacency matrix of the problem
-    int adjacencyMatrixSize = sizeof(int) * problemSize * problemSize;
-    int* adjacencyMatrix = (int*)malloc(adjacencyMatrixSize);
-
-    getATSPAdjacencyMatrix(adjacencyMatrix, location, nullKey);
-
-
-    // create coppies of the problems on the device
-    int* device_adjacencyMatrix;
-    cudaHandleError(cudaMalloc(&device_adjacencyMatrix, adjacencyMatrixSize));
-    cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, adjacencyMatrixSize, cudaMemcpyHostToDevice));
-
-
-    // allocate pheromone matrix on host and device
-    int pheromoneMatrixSize = sizeof(double) * problemSize * problemSize;
-    double* pheromoneMatrix = (double*)malloc(pheromoneMatrixSize);
-    
-    double* device_pheromoneMatrix;
-    cudaHandleError(cudaMalloc(&device_pheromoneMatrix, pheromoneMatrixSize));
-
-
-    // allocate ant histories on matrix (with an additional column at the end to hold the total distance traveled so far)
-    int antHistoriesSize = sizeof(int) * numAnts * (problemSize + 1);
-    int* antHistories = (int*)malloc(antHistoriesSize);
-
-    int* device_antHistories;
-    cudaHandleError(cudaMalloc(&device_antHistories, sizeof(int) * numAnts * problemSize));
-
-    // for the given number of iterations
-    for(int i = 0; i < numIterations; i++){
-        // load pheromone matrix to device
-        cudaHandleError(cudaMemcpy(&device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
-
-
-        // invoke kernel
-        // check for kernel errors (immediately after kernel execution)
-
-        // retrieve ant histories
-        cudaHandleError(cudaMemcpy(antHistories, device_antHistories, antHistoriesSize, cudaMemcpyDeviceToHost));
-
-        // update pheromone matrix
-        updatePheromoneMatrix(pheromoneMatrix, pheromoneMatrixSize, antHistories, antHistoriesSize, numAnts, i, problemSize);
-    }
-
-
-
-    // get ant histories and find best result
-    
-
-
-
-    // free all used memory
-
-        // device
-    cudaHandleError(cudaFree(device_adjacencyMatrix));
-    cudaHandleError(cudaFree(device_pheromoneMatrix));
-    cudaHandleError(cudaFree(device_antHistories));
-
-        // host
-    free(adjacencyMatrix);
-    free(pheromoneMatrix);
-    free(antHistories);
-
 }
 
 
@@ -224,9 +150,23 @@ int main()
     // and possibly some null key for data integrity
     int nullKey = 100000000;
 
-    ACOsolveSTSP(STSPproblemSize, STSPLocation, numAnts, numIterations);
-    ACOsolveATSP(ATSPproblemSize, ATSPLocation, numAnts, numIterations, nullKey);
+    // get STSP adjacencyMatrix
+    double* STSP_adjacencyMatrix = (double*) malloc(sizeof(double) * STSPproblemSize * STSPproblemSize);
+    getSTSPAdjacencyMatrix(STSP_adjacencyMatrix, STSPLocation STSPproblemSize);
 
+    // get ATSP adjacencyMatrix
+    double* ATSP_adjacencyMatrix = (double*) malloc(sizeof(double) * ATSPproblemSize * ATSPproblemSize);
+    getATSPAdjacencyMatrix(ATSP_adjacencyMatrix, ATSPLocation, nullKey);
+
+
+    // solve problems
+    ACOsolve(STSP_adjacencyMatrix, STSPproblemSize, numAnts, numIterations);
+    ACOsolve(ATSP_adjacencyMatrix, ATSPproblemSize, numAnts, numIterations);
+
+
+    // free adjacency matrices
+
+    // ================== KERNEL CALLS =========================
     ACOPrint<<<GROUPS_OF_N_ANTS, THREADS_PER_BLOCK>>>();
     cudaDeviceSynchronize();
     atexit(myexit);
