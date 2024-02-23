@@ -102,7 +102,8 @@ void ACOsolveSTSP(int problemSize, string location, int numAnts, int numIteratio
 
     // for the given number of iterations
     for(int i = 0; i < numIterations; i++){
-        
+        // load pheromone matrix to device
+        cudaHandleError(cudaMemcpy(&device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
 
 
         // invoke kernel
@@ -165,9 +166,21 @@ void ACOsolveATSP(int problemSize, string location, int numAnts, int numIteratio
     int* device_antHistories;
     cudaHandleError(cudaMalloc(&device_antHistories, sizeof(int) * numAnts * problemSize));
 
-    // invoke kernel
+    // for the given number of iterations
+    for(int i = 0; i < numIterations; i++){
+        // load pheromone matrix to device
+        cudaHandleError(cudaMemcpy(&device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
 
-    // check for kernel errors (immediately after kernel execution)
+
+        // invoke kernel
+        // check for kernel errors (immediately after kernel execution)
+
+        // retrieve ant histories
+        cudaHandleError(cudaMemcpy(antHistories, device_antHistories, antHistoriesSize, cudaMemcpyDeviceToHost));
+
+        // update pheromone matrix
+        updatePheromoneMatrix(pheromoneMatrix, pheromoneMatrixSize, antHistories, antHistoriesSize, numAnts, i, problemSize);
+    }
 
 
 
