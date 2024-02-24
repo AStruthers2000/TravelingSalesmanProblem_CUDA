@@ -8,14 +8,19 @@
 //our includes
 //#include "Utils/HelperFunctions.cu"
 //#include "Problem/ProblemInstance.cu"
-#include "Algorithms/AntColony.cuh"
-#include "ModelParameters.h"
+//#include "Algorithms/AntColony.cuh"
+//#include "ModelParameters.h"
 #include <iostream>
+#include <math.h>
 
 using namespace std;
 
 // evaporation rate must be an element of [0, 1]
-const int PHEROMONE_EVAPORATION_RATE = 0.01;
+const double PHEROMONE_EVAPORATION_RATE = 0.01;
+
+
+
+__global__ void copyMatrix(double* destinationMatrix, double* startingMatrix, int matrixWidth);
 
 void myexit();
 
@@ -30,36 +35,36 @@ void getSTSPAdjacencyMatrix(double* matrix, string location, int problemSize) {}
 
 void getATSPAdjacencyMatrix(double* matrix, string location, int nullKey) {}
 
-void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, int* antHistories, int antHistoriesSize, int numAnts, int iteration, int problemSize){
+void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, double* antHistories, int antHistoriesSize, int numAnts, int iteration, int problemSize) {
 
     // perform pheromone evaporation on every edge
-    for(int i = 0; i < problemSize; i++){
-        for(int j = 0; j < problemSize; j++){
-            pheromoneMatrix[i*problemSize +j ] = pheromoneMatrix[i*problemSize + j] * PHEROMONE_EVAPORATION_RATE;
+    for (int i = 0; i < problemSize; i++) {
+        for (int j = 0; j < problemSize; j++) {
+            pheromoneMatrix[i * problemSize + j] = pheromoneMatrix[i * problemSize + j] * PHEROMONE_EVAPORATION_RATE;
         }
     }
 
 
 
     // for each ant history
-    for(int i = 0; i < antHistoriesSize/(problemSize+1); i++){
+    for (int i = 0; i < antHistoriesSize / (problemSize + 1); i++) {
 
         // for each edge traveled
-        for(int j = 0; j <= problemSize; j++){
-            int startingCity = antHistories[(problemSize + 1) * i + j];
+        for (int j = 0; j <= problemSize; j++) {
+            int startingCity = (int) antHistories[(problemSize + 1) * i + j];
             int endingCity;
 
-            if(j == problemSize){ // loop back around to starting index if at the end of the path
-                endingCity = antHistories[(problemSize + 1) * i + 0];
+            if (j == problemSize) { // loop back around to starting index if at the end of the path
+                endingCity = (int) antHistories[(problemSize + 1) * i + 0];
             }
-            else{
-                endingCity = antHistories[(problemSize + 1) * i + j + 1];
+            else {
+                endingCity = (int) antHistories[(problemSize + 1) * i + j + 1];
             }
 
             // at the edge traveled, update the pheromone matrix according to the fitness of the ant's solution
 
             // get the amount to add to the edge (ant's total tour length is stored at the last index of the history)
-            double pheromoneToAdd = 1/(antHistories[i * (problemSize+1) + problemSize]);
+            double pheromoneToAdd = 1 / (antHistories[i * (problemSize + 1) + problemSize]);
 
             pheromoneMatrix[problemSize * startingCity + endingCity] = pheromoneMatrix[problemSize * startingCity + endingCity] + pheromoneToAdd;
         }
@@ -67,14 +72,75 @@ void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, int
 
 }
 
-void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIterations){
+
+void recordPheromoneMatrix(double* pheromone_matrix_per_iteration, double* pheromoneMatrix, int problemSize, int pheromoneMatrixSize, int iteration) {
+    // allocate memory on the device for the pheromone matrix
+    double* device_destinationPheromoneMatrix;
+    cudaHandleError(cudaMalloc(&device_destinationPheromoneMatrix, pheromoneMatrixSize));
+
+    double* device_startingPheromoneMatrix;
+    cudaHandleError(cudaMalloc(&device_startingPheromoneMatrix, pheromoneMatrixSize));
+    cudaHandleError(cudaMemcpy(device_startingPheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
+
+    // get the number of threads and blocks.
+    unsigned int num_threads = 128;
+    unsigned int num_blocks = ceil(problemSize / 128);
+
+    // kernel call
+    copyMatrix<<<num_blocks, num_threads >>> (device_destinationPheromoneMatrix, device_startingPheromoneMatrix, problemSize);
+
+    cudaHandleError(cudaMemcpy(&pheromone_matrix_per_iteration[iteration * problemSize * problemSize], device_destinationPheromoneMatrix, pheromoneMatrixSize, cudaMemcpyDeviceToHost));
+
+    cudaError_t error = cudaGetLastError();
+
+    if (error != cudaSuccess) {
+        cout << "Failed to perform device operation " << cudaGetErrorString(error);
+        error = cudaDeviceReset();
+    }
+
+    // free device memory
+    cudaHandleError(cudaFree(device_destinationPheromoneMatrix));
+    cudaHandleError(cudaFree(device_startingPheromoneMatrix));
+}
+
+void recordBestAndAverageDistance(double* best_distance_per_iteration, double* average_distance_per_iteration, double* antHistories, int numAnts, int problemSize, int iteration) {
+    double distanceSum = 0;
+
+    // get the distance of the first ant
+    double bestDistance = antHistories[0 * problemSize + problemSize];
+
+    double curDistance;
+
+    for (int i = 1; i < numAnts; i++) {
+        // get the distance of the curent ant
+        curDistance = antHistories[i * problemSize + problemSize];
+
+        // add to the sum of distances
+        distanceSum += curDistance;
+
+        // if the curent distance is better than best distance, save it as the new best
+        if (curDistance < bestDistance) {
+            bestDistance = curDistance;
+        }
+    }
+
+    // get the average distance
+    double averageDistance = distanceSum / numAnts;
+
+    // save best and average distance of the curent iteration.
+    best_distance_per_iteration[iteration] = bestDistance;
+    average_distance_per_iteration[iteration] = averageDistance;
+}
+
+void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIterations, double* best_distance_per_iteration, double* average_distance_per_iteration, double* pheromone_matrix_per_iteration) {
+
     
     // create coppies of the problem on the device
     int adjacencyMatrixSize = sizeof(double) * problemSize * problemSize;
     double* device_adjacencyMatrix;
     cudaHandleError(cudaMalloc(&device_adjacencyMatrix, adjacencyMatrixSize));
     cudaHandleError(cudaMemcpy(device_adjacencyMatrix, adjacencyMatrix, adjacencyMatrixSize, cudaMemcpyHostToDevice));
-
+    
 
 
     // allocate pheromone matrix on host and device
@@ -84,32 +150,42 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
     double* device_pheromoneMatrix;
     cudaHandleError(cudaMalloc(&device_pheromoneMatrix, pheromoneMatrixSize));
 
-
+    
 
     // allocate ant histories on matrix (with an additoinal comun to hold the distance traveled so far)
-    int antHistoriesSize = sizeof(int) * numAnts * (problemSize + 1);
-    int* antHistories = (int*)malloc(antHistoriesSize);
+    int antHistoriesSize = sizeof(double) * numAnts * (problemSize + 1);
+    double* antHistories = (double*)malloc(antHistoriesSize);
 
-    int* device_antHistories;
+    double* device_antHistories;
     cudaHandleError(cudaMalloc(&device_antHistories, antHistoriesSize));
 
-
+    
     // for the given number of iterations
-    for(int i = 0; i < numIterations; i++){
+    for (int i = 0; i < numIterations; i++) {
         // load pheromone matrix to device
-        cudaHandleError(cudaMemcpy(&device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
-
-
+        
+        cudaHandleError(cudaMemcpy(device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
+        
         // invoke kernel
         // check for kernel errors (immediately after kernel execution)
 
         // retrieve ant histories
+        
         cudaHandleError(cudaMemcpy(antHistories, device_antHistories, antHistoriesSize, cudaMemcpyDeviceToHost));
 
         // update pheromone matrix
         updatePheromoneMatrix(pheromoneMatrix, pheromoneMatrixSize, antHistories, antHistoriesSize, numAnts, i, problemSize);
+
+
+        // record pheromone matrix
+        
+        recordPheromoneMatrix(pheromone_matrix_per_iteration, pheromoneMatrix, problemSize, pheromoneMatrixSize, i);
+
+        // record best distance and average distance
+        recordBestAndAverageDistance(best_distance_per_iteration, average_distance_per_iteration, antHistories, numAnts, problemSize, i);
+
     }
-    
+
 
 
 
@@ -124,7 +200,7 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
     cudaHandleError(cudaFree(device_pheromoneMatrix));
     cudaHandleError(cudaFree(device_antHistories));
 
-        // host
+    // host
     free(pheromoneMatrix);
     free(antHistories);
 }
@@ -151,28 +227,72 @@ int main()
     int nullKey = 100000000;
 
     // get STSP adjacencyMatrix
-    double* STSP_adjacencyMatrix = (double*) malloc(sizeof(double) * STSPproblemSize * STSPproblemSize);
-    getSTSPAdjacencyMatrix(STSP_adjacencyMatrix, STSPLocation STSPproblemSize);
+    double* STSP_adjacencyMatrix = (double*)malloc(sizeof(double) * STSPproblemSize * STSPproblemSize);
+    getSTSPAdjacencyMatrix(STSP_adjacencyMatrix, STSPLocation, STSPproblemSize);
 
     // get ATSP adjacencyMatrix
-    double* ATSP_adjacencyMatrix = (double*) malloc(sizeof(double) * ATSPproblemSize * ATSPproblemSize);
+    double* ATSP_adjacencyMatrix = (double*)malloc(sizeof(double) * ATSPproblemSize * ATSPproblemSize);
     getATSPAdjacencyMatrix(ATSP_adjacencyMatrix, ATSPLocation, nullKey);
 
 
+    // CREATE MATRICIES TO HOLD DATA FROM PROGRAM RUNS
+        // best tour distances for each iteration (1-Dimension array)
+    double* STSP_best_tour_distances_for_each_iteration = (double*)malloc(sizeof(double) * numIterations);
+    double* ATSP_best_tour_distances_for_each_iteration = (double*)malloc(sizeof(double) * numIterations);
+
+    // average tour distance of each iteration (1-Dimension array)
+    double* STSP_average_tour_distance_for_each_iteraiton = (double*)malloc(sizeof(double) * numIterations);
+    double* ATSP_average_tour_diatance_for_each_iteration = (double*)malloc(sizeof(double) * numIterations);
+
+    // pheromone matrix for each iteration (3-dimension array)
+    double* STSP_pheromone_matrix_for_each_iteraiton = (double*)malloc(sizeof(double) * numIterations * STSPproblemSize * STSPproblemSize);
+    double* ATSP_pheromone_matrix_for_each_iteration = (double*)malloc(sizeof(double) * numIterations * ATSPproblemSize * ATSPproblemSize);
+
+
     // solve problems
-    ACOsolve(STSP_adjacencyMatrix, STSPproblemSize, numAnts, numIterations);
-    ACOsolve(ATSP_adjacencyMatrix, ATSPproblemSize, numAnts, numIterations);
+    ACOsolve(STSP_adjacencyMatrix, STSPproblemSize, numAnts, numIterations, STSP_best_tour_distances_for_each_iteration, STSP_average_tour_distance_for_each_iteraiton, STSP_pheromone_matrix_for_each_iteraiton);
+    ACOsolve(ATSP_adjacencyMatrix, ATSPproblemSize, numAnts, numIterations, ATSP_best_tour_distances_for_each_iteration, ATSP_average_tour_diatance_for_each_iteration, ATSP_pheromone_matrix_for_each_iteration);
 
 
     // free adjacency matrices
+    free(STSP_adjacencyMatrix);
+    free(ATSP_adjacencyMatrix);
+
+
+    // free saved information from each iteration
+    free(STSP_best_tour_distances_for_each_iteration);
+    free(ATSP_best_tour_distances_for_each_iteration);
+
+    free(STSP_average_tour_distance_for_each_iteraiton);
+    free(ATSP_average_tour_diatance_for_each_iteration);
+
+    free(STSP_pheromone_matrix_for_each_iteraiton);
+    free(ATSP_pheromone_matrix_for_each_iteration);
 
     // ================== KERNEL CALLS =========================
-    ACOPrint<<<GROUPS_OF_N_ANTS, THREADS_PER_BLOCK>>>();
+    //ACOPrint << <GROUPS_OF_N_ANTS, THREADS_PER_BLOCK >> > ();
     cudaDeviceSynchronize();
     atexit(myexit);
     return EXIT_SUCCESS;
 }
 
+
+__global__ void copyMatrix(double* destinationMatrix, double* startingMatrix, int matrixWidth) {
+    int thread_id = threadIdx.x;
+    int block_id = blockIdx.x;
+
+    unsigned int index = block_id * thread_id;
+
+    // while the index wont go out of bounds of the matrices
+    if (index < matrixWidth) {
+
+        // use the kernel to copy the index's row
+        for (int i = 0; i < matrixWidth; i++) {
+
+            destinationMatrix[matrixWidth * index + i] = startingMatrix[matrixWidth * index + i];
+        }
+    }
+}
 
 //
 //__global__ void calculate_next_iteration(double** adj_mat, int* solutions, double* fitnesses, int solution_size);
@@ -335,7 +455,7 @@ void myexit()
 {
     printf("Exiting and resetting device\n");
     cudaError_t err = cudaDeviceReset();
-    if(err != cudaSuccess)
+    if (err != cudaSuccess)
     {
         printf("Error: %s", cudaGetErrorString(err));
     }
