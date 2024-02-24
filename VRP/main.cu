@@ -27,7 +27,7 @@ void myexit();
 // A helper method for handling erros from CUDA calls
 void cudaHandleError(cudaError_t error) {
     if (error != cudaSuccess) {
-        cout << "Failed to perform device operation: " << cudaGetErrorString(error);
+        cout << "Failed to perform device operation: " << cudaGetErrorString(error) << "\n";
         error = cudaDeviceReset();
     }
 }
@@ -47,7 +47,7 @@ void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, dou
 
 
     // for each ant history
-    for (int i = 0; i < antHistoriesSize / (problemSize + 1); i++) {
+    for (int i = 0; i < numAnts; i++) {
 
         // for each edge traveled
         for (int j = 0; j <= problemSize; j++) {
@@ -163,27 +163,30 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
     // for the given number of iterations
     for (int i = 0; i < numIterations; i++) {
         // load pheromone matrix to device
-        
+        cout << "copy pheromone matrix to device\n";
         cudaHandleError(cudaMemcpy(device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
         
         // invoke kernel
         // check for kernel errors (immediately after kernel execution)
 
         // retrieve ant histories
-        
+        cout << "copy histories from device to host\n";
         cudaHandleError(cudaMemcpy(antHistories, device_antHistories, antHistoriesSize, cudaMemcpyDeviceToHost));
 
         // update pheromone matrix
+        cout << "update pheromone matrix\n";
         updatePheromoneMatrix(pheromoneMatrix, pheromoneMatrixSize, antHistories, antHistoriesSize, numAnts, i, problemSize);
 
 
         // record pheromone matrix
-        
+        cout << "record pheromone matrix\n";
         recordPheromoneMatrix(pheromone_matrix_per_iteration, pheromoneMatrix, problemSize, pheromoneMatrixSize, i);
 
         // record best distance and average distance
+        cout << "record best and average tour\n";
         recordBestAndAverageDistance(best_distance_per_iteration, average_distance_per_iteration, antHistories, numAnts, problemSize, i);
 
+        cout << "iteration: " << i << "\n";
     }
 
 
@@ -221,7 +224,7 @@ int main()
     int numAnts = 10000;
 
     // run a given number of iterations
-    int numIterations = 1000;
+    int numIterations = 100;
 
     // and possibly some null key for data integrity
     int nullKey = 100000000;
@@ -271,9 +274,9 @@ int main()
 
     // ================== KERNEL CALLS =========================
     //ACOPrint << <GROUPS_OF_N_ANTS, THREADS_PER_BLOCK >> > ();
-    cudaDeviceSynchronize();
-    atexit(myexit);
-    return EXIT_SUCCESS;
+    //cudaDeviceSynchronize();
+    //atexit(myexit);
+    //return EXIT_SUCCESS;
 }
 
 
