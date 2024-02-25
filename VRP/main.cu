@@ -255,7 +255,7 @@ __global__ void pheromoneAdjust(double* pheromoneMatrix, int pheromoneMatrixSize
     int thread_id = threadIdx.x;
     int block_id = blockIdx.x;
 
-    unsigned int index = block_id * thread_id;
+    unsigned int index = block_id + thread_id;
 
     if(index < numAnts){
 
@@ -287,7 +287,7 @@ __global__ void pheromoneMatrixEvaporation(double* pheromoneMatrix, int problemS
     int thread_id = threadIdx.x;
     int block_id = blockIdx.x;
 
-    unsigned int index = block_id * thread_id;
+    unsigned int index = block_id + thread_id;
 
     // each kernel will update the curent row of the problem
     if(index < problemSize){
