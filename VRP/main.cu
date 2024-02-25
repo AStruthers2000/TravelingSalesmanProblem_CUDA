@@ -4,6 +4,7 @@
 //cuda includes
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "AntColony.cuh"
 
 //our includes
 //#include "Utils/HelperFunctions.cu"
@@ -216,9 +217,13 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
 }
 
 
+#define ACO_NEW true
 int main()
 {
 
+#if ACO_NEW
+    ACO_main();
+#else
     // for a given problem size
     int STSPproblemSize = 1400; // number of cities
     int ATSPproblemSize = 65; // number of cites
@@ -284,6 +289,7 @@ int main()
     //cudaDeviceSynchronize();
     //atexit(myexit);
     //return EXIT_SUCCESS;
+#endif
 }
 
 
