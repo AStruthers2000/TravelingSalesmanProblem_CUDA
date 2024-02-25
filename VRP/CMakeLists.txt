@@ -5,6 +5,7 @@ find_package(CUDAToolkit)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda -g -lineinfo")
+set(CMAKE_CUDA_ARCHITECTURES 86)
 
 #include_directories(${CUDA_INCLUDE_DIRS})
 
