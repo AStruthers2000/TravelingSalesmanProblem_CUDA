@@ -24,7 +24,6 @@ using namespace std;
 __constant__ double PHEROMONE_EVAPORATION_RATE = 0.01;
 
 // define device functions
-__global__ void copyMatrix(double* destinationMatrix, double* startingMatrix, int matrixWidth);
 __global__ void pheromoneAdjust(double* pheromoneMatrix, int pheromoneMatrixSize, double* antHistories, int antHistoriesSize, int numAnts);
 __global__ void pheromoneMatrixEvaporation(double* pheromoneMatrix, int problemSzie);
 
@@ -50,12 +49,8 @@ void getSTSPAdjacencyMatrix(double* matrix, string location, int problemSize) {}
 
 void getATSPAdjacencyMatrix(double* matrix, string location, int nullKey) {}
 
-void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, double* antHistories, int antHistoriesSize, int numAnts, int iteration, int problemSize) {
-
-    // initialize a pheromone matrix on the device
-    double* device_pheromoneMatrix;
-    cudaHandleError(cudaMalloc(&device_pheromoneMatrix, pheromoneMatrixSize));
-    cudaHandleError(cudaMemcpy(device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
+// updates pheormone matrix on device
+void updatePheromoneMatrix(double* device_pheromoneMatrix, int pheromoneMatrixSize, double* device_antHistories, int antHistoriesSize, int numAnts, int iteration, int problemSize) {
 
     // get the number of threads and blocks for the pheromone matrix
     int num_threads = 128;
@@ -63,58 +58,26 @@ void updatePheromoneMatrix(double* pheromoneMatrix, int pheromoneMatrixSize, dou
 
     // kernel call
     pheromoneMatrixEvaporation<<<num_threads, num_blocks>>>(device_pheromoneMatrix, problemSize);
-
     // check for device error
     checkKernelError();
 
-    // copy pehromone matrix to host
-    cudaHandleError(cudaMemcpy(pheromoneMatrix, device_pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyDeviceToHost));
+    cudaDeviceSynchronize();
 
-
-    double* device_antHistories;
-    cudaHandleError(cudaMalloc(&device_antHistories, antHistoriesSize));
-    cudaHandleError(cudaMemcpy(device_antHistories, antHistories, antHistoriesSize, cudaMemcpyHostToDevice));
-
+    // update pheromone matrix based on ant histories
     num_blocks = ceil((double) numAnts / num_threads);
 
     pheromoneAdjust<<<num_threads, num_blocks>>>(device_pheromoneMatrix, pheromoneMatrixSize, device_antHistories, problemSize, numAnts);
 
     checkKernelError();
 
-    cudaHandleError(cudaMemcpy(pheromoneMatrix, device_pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyDeviceToHost));
-
-
-    cudaHandleError(cudaFree(device_pheromoneMatrix));
-    cudaHandleError(cudaFree(device_antHistories));
+    cudaDeviceSynchronize();
 
 }
 
 
-void recordPheromoneMatrix(double* pheromone_matrix_per_iteration, double* pheromoneMatrix, int problemSize, int pheromoneMatrixSize, int iteration) {
-    // allocate memory on the device for the pheromone matrix
-    double* device_destinationPheromoneMatrix;
-    cudaHandleError(cudaMalloc(&device_destinationPheromoneMatrix, pheromoneMatrixSize));
+void recordPheromoneMatrix(double* pheromone_matrix_per_iteration, double* device_pheromoneMatrix, int problemSize, int pheromoneMatrixSize, int iteration) {
 
-    double* device_startingPheromoneMatrix;
-    cudaHandleError(cudaMalloc(&device_startingPheromoneMatrix, pheromoneMatrixSize));
-    cudaHandleError(cudaMemcpy(device_startingPheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
-
-    // get the number of threads and blocks.
-    unsigned int num_threads = 128;
-    unsigned int num_blocks = ceil((double) problemSize / num_threads);
-
-    // kernel call
-    copyMatrix<<<num_blocks, num_threads>>>(device_destinationPheromoneMatrix, device_startingPheromoneMatrix, problemSize);
-    
-    checkKernelError();
-
-    cudaHandleError(cudaMemcpy(&pheromone_matrix_per_iteration[iteration * problemSize * problemSize], device_destinationPheromoneMatrix, pheromoneMatrixSize, cudaMemcpyDeviceToHost));
-
-    
-
-    // free device memory
-    cudaHandleError(cudaFree(device_destinationPheromoneMatrix));
-    cudaHandleError(cudaFree(device_startingPheromoneMatrix));
+    cudaHandleError(cudaMemcpy(&pheromone_matrix_per_iteration[iteration * pheromoneMatrixSize/sizeof(double)], device_pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyDeviceToHost));
 }
 
 void recordBestAndAverageDistance(double* best_distance_per_iteration, double* average_distance_per_iteration, double* antHistories, int numAnts, int problemSize, int iteration) {
@@ -177,6 +140,7 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
     // for the given number of iterations
     for (int i = 0; i < numIterations; i++) {
         // load pheromone matrix to device
+        cout << "iteration " << i << "\n";
         cudaHandleError(cudaMemcpy(device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
 
         // invoke kernel
@@ -186,11 +150,10 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
         cudaHandleError(cudaMemcpy(antHistories, device_antHistories, antHistoriesSize, cudaMemcpyDeviceToHost));
 
         // update pheromone matrix
-        updatePheromoneMatrix(pheromoneMatrix, pheromoneMatrixSize, antHistories, antHistoriesSize, numAnts, i, problemSize);
-
+        updatePheromoneMatrix(device_pheromoneMatrix, pheromoneMatrixSize, device_antHistories, antHistoriesSize, numAnts, i, problemSize);
 
         // record pheromone matrix
-        recordPheromoneMatrix(pheromone_matrix_per_iteration, pheromoneMatrix, problemSize, pheromoneMatrixSize, i);
+        recordPheromoneMatrix(pheromone_matrix_per_iteration, device_pheromoneMatrix, problemSize, pheromoneMatrixSize, i);
 
         // record best distance and average distance
         recordBestAndAverageDistance(best_distance_per_iteration, average_distance_per_iteration, antHistories, numAnts, problemSize, i);
@@ -292,31 +255,13 @@ int main()
 #endif
 }
 
-
-__global__ void copyMatrix(double* destinationMatrix, double* startingMatrix, int matrixWidth) {
-    int thread_id = threadIdx.x;
-    int block_id = blockIdx.x;
-
-    unsigned int index = block_id * thread_id;
-
-    // while the index wont go out of bounds of the matrices
-    if (index < matrixWidth) {
-
-        // use the kernel to copy the index's row
-        for (int i = 0; i < matrixWidth; i++) {
-
-            destinationMatrix[matrixWidth * index + i] = startingMatrix[matrixWidth * index + i];
-        }
-    }
-}
-
 __global__ void pheromoneAdjust(double* pheromoneMatrix, int pheromoneMatrixSize, double* antHistories, int problemSize, int numAnts){
 
     // get the thread index
     int thread_id = threadIdx.x;
     int block_id = blockIdx.x;
 
-    unsigned int index = block_id * thread_id;
+    unsigned int index = block_id + thread_id;
 
     if(index < numAnts){
 
@@ -348,7 +293,7 @@ __global__ void pheromoneMatrixEvaporation(double* pheromoneMatrix, int problemS
     int thread_id = threadIdx.x;
     int block_id = blockIdx.x;
 
-    unsigned int index = block_id * thread_id;
+    unsigned int index = block_id + thread_id;
 
     // each kernel will update the curent row of the problem
     if(index < problemSize){
