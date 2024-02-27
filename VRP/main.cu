@@ -25,8 +25,10 @@ const int THREADS_PER_BLOCK = 128;
 __constant__ double PHEROMONE_EVAPORATION_RATE = 0.6;
 
 // constants to regulate the influence of peheromones and edge weights
-__constant__ double ALPHA = 3; // pheromone regulation
-__constant__ double BETA = 4; // edge weight regulation
+__constant__ double ALPHA = 4; // pheromone regulation
+__constant__ double BETA = 6; // edge weight regulation
+
+__constant__ double Q = 1;
 
 // define device functions
 __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, curandState* states, double* history_distances, int* history_tours, int* history_visited, int num_cities, int numAnts, int curIteration, int threadsPerBlock);
@@ -169,6 +171,14 @@ void printArray(double* arrayToPrint, int size) {
 
     cout << "\n";
 }
+void printArray(int* arrayToPrint, int size) {
+    for (int i = 0; i < size; i++) {
+        cout << arrayToPrint[i] << ", ";
+    }
+
+    cout << "\n";
+}
+
 
 void printMatrix(double* matrixToPrint, int width, int height) {
     for (int i = 0; i < height; i++) {
@@ -210,41 +220,57 @@ void recordPheromoneMatrix(double* pheromone_matrix_per_iteration, double* devic
     cudaHandleError(cudaMemcpy(&pheromone_matrix_per_iteration[iteration * pheromoneMatrixSize / sizeof(double)], device_pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyDeviceToHost));
 }
 
-void recordBestAndAverageDistance(double* best_distance_per_iteration, double* average_distance_per_iteration, double* device_antDistances, int numAnts, int problemSize, int iteration) {
+void recordBestAndAverageDistance(double* best_distance_per_iteration, double* average_distance_per_iteration, double* device_antDistances, int* device_antHistory, int numAnts, int problemSize, int iteration) {
     
     // copy distance history from device to host
     double* distanceHistory = (double*) malloc(sizeof(double) * numAnts);
     cudaHandleError(cudaMemcpy(distanceHistory, device_antDistances, sizeof(double) * numAnts, cudaMemcpyDeviceToHost));
     
+    int* antHistory = (int*)malloc(sizeof(int) * numAnts * problemSize);
+    cudaHandleError(cudaMemcpy(antHistory, device_antHistory, sizeof(int) * numAnts * problemSize, cudaMemcpyDeviceToHost));
+
     // set the best to the first index
     double best = distanceHistory[0];
     
     // initalize the sum of all distanes
     double sumOfDistances = distanceHistory[0];
-    
+    int bestAntIndex = 0;
     for (int i = 1; i < numAnts; i++) {
-        
+        //cout << i << ", \n";
         double curDist = distanceHistory[i];
 
         if (curDist < best) {
+            //cout << "BETTER FOUND\n";
+            bestAntIndex = i;
             best = curDist;
         }
 
         sumOfDistances += curDist;
+        
     }
 
+    
+
+    // print path of best route
+    /*
+    for (int i = 0; i < problemSize; i++) {
+        cout << antHistory[bestAntIndex * problemSize + i] << ", ";
+    }
+
+    cout << "\n";
+    */
     best_distance_per_iteration[iteration] = best;
-    average_distance_per_iteration[iteration] = sumOfDistances / problemSize;
+    average_distance_per_iteration[iteration] = sumOfDistances / numAnts;
     
 
     free(distanceHistory);
-
+    free(antHistory);
 }
 
 void pheromoneInit(double* pheormoneMatrix, int problemSize) {
     for (int i = 0; i < problemSize; i++) {
         for (int j = 0; j < problemSize; j++) {
-            pheormoneMatrix[i * problemSize + j] = 0.01;
+            pheormoneMatrix[i * problemSize + j] = 1;
         }
     }
 }
@@ -321,6 +347,7 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
         // load pheromone matrix to device
         cout << "iteration " << i << "\n";
         cudaHandleError(cudaMemcpy(device_pheromoneMatrix, pheromoneMatrix, pheromoneMatrixSize, cudaMemcpyHostToDevice));
+
         //printMatrix(pheromoneMatrix, problemSize, problemSize);
         // invoke kernel
         int num_blocks = ceil((double)numAnts / THREADS_PER_BLOCK);
@@ -342,7 +369,7 @@ void ACOsolve(double* adjacencyMatrix, int problemSize, int numAnts, int numIter
         recordPheromoneMatrix(pheromone_matrix_per_iteration, device_pheromoneMatrix, problemSize, pheromoneMatrixSize, i);
 
         // record best distance and average distance
-        recordBestAndAverageDistance(best_distance_per_iteration, average_distance_per_iteration, device_distanceHistory, numAnts, problemSize, i);
+        recordBestAndAverageDistance(best_distance_per_iteration, average_distance_per_iteration, device_distanceHistory, device_antHistories, numAnts, problemSize, i);
     }
 
 
@@ -466,6 +493,7 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
         //because a tour is only finished once we return to where we started
         for (int i = 1; i < num_cities; i++)
         {
+
             //printf("new i %d", i);
             //we only care about accumulating probability for cities we have not visited
             //we want to compute:
@@ -503,18 +531,19 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
             //for each possible city, we want to compute:
             //\tau_{im}^\alpha \cdot \eta_{im}^\beta
             //so that we can calculate P_{ij} as this product divided by the sum calculated above
+            int last_best_city;
             for (int next_city = 0; next_city < num_cities; next_city++)
             {
                 if (history_visited[ant_id * num_cities + next_city] != (curIteration + 1) % 2)
                 {
-                    //selected_city = next_city;
+                    last_best_city = next_city;
+
                     int city_index = current_city * num_cities + next_city;
                     
                     double tau = matrix_pheromones[city_index];
                     double eta = 1/matrix_distances[city_index];
 
-                    
-
+                   
                     double num = pow(tau, ALPHA) * pow(eta, BETA);
                     
                     double prob = num / total_prob;
@@ -540,6 +569,11 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
             //We need to add this city to this ant's tour, add this city to this
             //ant's visited history, and add the distance from this move to this ant's
             //distance history
+
+            if (selected_city < 0) {
+                selected_city = last_best_city;
+                printf("ERROR -1 || %d || accumProb %f || r %f\n", ant_id, accum_prob, r);
+            }
             
             //printf("history tours\n");
             history_tours[ant_id * num_cities + i] = selected_city;
@@ -547,10 +581,15 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
             history_visited[ant_id * num_cities + selected_city] = ((curIteration + 1) % 2);
             //printf("history distances\n");
             history_distances[ant_id] += matrix_distances[current_city * num_cities + selected_city];
+
             current_city = selected_city;
         }
         //we need to return to the starting city now
         //we go from the last visited city
+        int from = history_tours[ant_id * num_cities + (num_cities - 1)];
+        //to the first visited city
+        int to = history_tours[ant_id * num_cities];
+        history_distances[ant_id] += matrix_distances[from * num_cities + to];
         
     }
 }
@@ -591,7 +630,7 @@ __global__ void pheromoneAdjust(double* pheromoneMatrix, int pheromoneMatrixSize
             }
             // at the edge traveled, update the pheromone matrix according to the fitness of the ant's solution
             // get the amount to add to the edge (ant's total tour length is stored at the last index of the history)
-            double pheromoneToAdd = 1/antDistanceHistories[ant_index];
+            double pheromoneToAdd = Q/antDistanceHistories[ant_index];
 
             //printf("andID %d || pheromone to add %f || distance of ant %f\n", ant_index, pheromoneToAdd, antDistanceHistories[ant_index]);
 
