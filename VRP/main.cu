@@ -22,13 +22,13 @@ const int THREADS_PER_BLOCK = 128;
 // define device constants
 
 // evaporation rate must be an element of [0, 1]
-__constant__ double PHEROMONE_EVAPORATION_RATE = 0.6;
+__constant__ double PHEROMONE_EVAPORATION_RATE = 0.4;
 
 // constants to regulate the influence of peheromones and edge weights
-__constant__ double ALPHA = 4; // pheromone regulation
-__constant__ double BETA = 6; // edge weight regulation
+__constant__ double ALPHA = 2.0; // pheromone regulation
+__constant__ double BETA = 4.0; // edge weight regulation
 
-__constant__ double Q = 1;
+__constant__ double Q = 100.0;
 
 // define device functions
 __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, curandState* states, double* history_distances, int* history_tours, int* history_visited, int num_cities, int numAnts, int curIteration, int threadsPerBlock);
@@ -270,7 +270,7 @@ void recordBestAndAverageDistance(double* best_distance_per_iteration, double* a
 void pheromoneInit(double* pheormoneMatrix, int problemSize) {
     for (int i = 0; i < problemSize; i++) {
         for (int j = 0; j < problemSize; j++) {
-            pheormoneMatrix[i * problemSize + j] = 1;
+            pheormoneMatrix[i * problemSize + j] = 1.0;
         }
     }
 }
@@ -407,7 +407,7 @@ int main()
     string ATSPLocation = "ftv64.atsp";
 
     // for a given number of ants
-    int numAnts = 10000;
+    int numAnts = 1000;
 
     // run a given number of iterations
     int numIterations = 100;
@@ -439,10 +439,14 @@ int main()
 
 
     // solve problems
-    //ACOsolve(STSP_adjacencyMatrix, STSPproblemSize, numAnts, numIterations, STSP_best_tour_distances_for_each_iteration, STSP_average_tour_distance_for_each_iteraiton, STSP_pheromone_matrix_for_each_iteraiton);
+    ACOsolve(STSP_adjacencyMatrix, STSPproblemSize, numAnts, numIterations, STSP_best_tour_distances_for_each_iteration, STSP_average_tour_distance_for_each_iteraiton, STSP_pheromone_matrix_for_each_iteraiton);
     ACOsolve(ATSP_adjacencyMatrix, ATSPproblemSize, numAnts, numIterations, ATSP_best_tour_distances_for_each_iteration, ATSP_average_tour_diatance_for_each_iteration, ATSP_pheromone_matrix_for_each_iteration);
-
+    cout << "STSP\n";
+    printArray(STSP_best_tour_distances_for_each_iteration, numIterations);
+    cout << "ATSP\n";
     printArray(ATSP_best_tour_distances_for_each_iteration, numIterations);
+
+    //printMatrix(&ATSP_pheromone_matrix_for_each_iteration[numIterations * ATSPproblemSize], ATSPproblemSize, ATSPproblemSize);
 
     // free adjacency matrices
     free(STSP_adjacencyMatrix);
@@ -512,7 +516,7 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
                     //printf("%d ", next_city);
                     int city_index = current_city * num_cities + next_city;
                     double tau = matrix_pheromones[city_index];
-                    double eta = 1/matrix_distances[city_index];
+                    double eta = 1.0/matrix_distances[city_index];
                     total_prob += pow(tau, ALPHA) * pow(eta, BETA);
                     
                     //printf("tau = %f || eta = %f || total_prob = %f || etc = %f\n", tau, eta, total_prob, pow(tau, ALPHA) * pow(eta, BETA));
@@ -523,7 +527,7 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
 
             //perform roulette wheel selection to select our next city
 
-            double r = curand_uniform(&states[ant_id]);
+            double r = curand_uniform(&states[ant_id]) * total_prob;
             double accum_prob = 0.0;
             int selected_city = -1;
 
@@ -541,12 +545,12 @@ __global__ void move_ant(double* matrix_pheromones, double* matrix_distances, cu
                     int city_index = current_city * num_cities + next_city;
                     
                     double tau = matrix_pheromones[city_index];
-                    double eta = 1/matrix_distances[city_index];
+                    double eta = 1.0/matrix_distances[city_index];
 
                    
-                    double num = pow(tau, ALPHA) * pow(eta, BETA);
+                    double prob = pow(tau, ALPHA) * pow(eta, BETA);
                     
-                    double prob = num / total_prob;
+                    //double prob = num; /// total_prob;
 
                     accum_prob += prob;
                     //printf("city %d || tau %f || eta %f || num %f || r %f || accumProb %f || totalProb %f\n", next_city, tau, eta, num, r, accum_prob, total_prob);
@@ -636,7 +640,7 @@ __global__ void pheromoneAdjust(double* pheromoneMatrix, int pheromoneMatrixSize
 
             //printf("Pheromone to add %f\n", pheromoneToAdd);
 
-            pheromoneMatrix[problemSize * startingCity + endingCity] = pheromoneMatrix[problemSize * startingCity + endingCity] + pheromoneToAdd;
+            pheromoneMatrix[problemSize * startingCity + endingCity] += pheromoneToAdd;
 
         }
     }
@@ -652,7 +656,7 @@ __global__ void pheromoneMatrixEvaporation(double* pheromoneMatrix, int problemS
     if (index < problemSize) {
 
         for (int i = 0; i < problemSize; i++) {
-            pheromoneMatrix[problemSize * index + i] = pheromoneMatrix[problemSize * index + i] * PHEROMONE_EVAPORATION_RATE;
+            pheromoneMatrix[problemSize * index + i] *= (1 - PHEROMONE_EVAPORATION_RATE);
         }
     }
 }
