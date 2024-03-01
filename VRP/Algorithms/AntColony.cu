@@ -26,7 +26,10 @@ __device__ unsigned int get_index()
 __global__ void setup_curand_states(curandState* dev_states, unsigned long seed)
 {
     unsigned int index = get_index();
-    curand_init(seed, index, 0, &dev_states[index]);
+    if(index < NUM_ANTS)
+    {
+        curand_init(seed, index, 0, &dev_states[index]);
+    }
 }
 
 void allocate_memory()
@@ -111,7 +114,7 @@ void initialize_values()
             int index = i * cities + j;
             if (i != j)
             {
-                host_pheromones[index] = 1.0;
+                host_pheromones[index] = INIT_PHEROMONE_LEVEL;
             }
             else
             {
@@ -152,7 +155,7 @@ void free_memory()
 }
 
 
-int ACO_main()
+double ACO_main()
 {
     cities = 29;
 
@@ -266,9 +269,19 @@ int ACO_main()
 
     free_memory();
     cudaDeviceReset();
-    return EXIT_SUCCESS;
+    return min;
 }
 
+/**
+ *
+ * @param matrix_pheromones
+ * @param matrix_distances
+ * @param states
+ * @param history_distances
+ * @param history_tours
+ * @param history_visited
+ * @param num_cities
+ */
 __global__ void
 move_ant(const double *matrix_pheromones, const double *matrix_distances, curandState *states,
          double *history_distances, int *history_tours, int *history_visited, int num_cities)
@@ -304,13 +317,13 @@ move_ant(const double *matrix_pheromones, const double *matrix_distances, curand
             {
                 int city_index = current_city * num_cities + next_city;
                 double tau = matrix_pheromones[city_index];
-                double eta = matrix_distances[city_index];
+                double eta = 1.0 / matrix_distances[city_index];
                 total_prob += pow(tau, ALPHA) * pow(eta, BETA);
             }
         }
 
         //perform roulette wheel selection to select our next city
-        double r = curand_uniform(&states[ant_id]);
+        double r = curand_uniform(&states[ant_id]) * total_prob;
         double accum_prob = 0.0;
         int selected_city = -1;
 
@@ -318,15 +331,20 @@ move_ant(const double *matrix_pheromones, const double *matrix_distances, curand
         //for each possible city, we want to compute:
         //\tau_{im}^\alpha \cdot \eta_{im}^\beta
         //so that we can calculate P_{ij} as this product divided by the sum calculated above
+        int last_best = 0;
         for(int next_city = 0; next_city < num_cities; next_city++)
         {
             if(history_visited[ant_id * num_cities + next_city] != 1)
             {
+                last_best = next_city;
+
                 int city_index = current_city * num_cities + next_city;
+
                 double tau = matrix_pheromones[city_index];
-                double eta = matrix_distances[city_index];
-                double num = pow(tau, ALPHA) * pow(eta, BETA);
-                double prob = num / total_prob;
+                double eta = 1.0 / matrix_distances[city_index];
+
+                double prob = pow(tau, ALPHA) * pow(eta, BETA);
+                //double prob = num / total_prob;
                 accum_prob += prob;
                 //printf("\tThread %d:%d tried to go to city %d, with a probability of %2.2f where accum prob = %2.2f\n", blockIdx.x, threadIdx.x, next_city, prob, accum_prob);
 
@@ -336,6 +354,12 @@ move_ant(const double *matrix_pheromones, const double *matrix_distances, curand
                     break;
                 }
             }
+        }
+
+        if(selected_city == -1)
+        {
+            selected_city = last_best;
+            printf("ERROR -1 || %d || accumProb %f || r %f\n", ant_id, accum_prob, r);
         }
 
         //printf("Thread %d:%d is now visiting city %d\n", blockIdx.x, threadIdx.x, selected_city);
@@ -359,6 +383,11 @@ move_ant(const double *matrix_pheromones, const double *matrix_distances, curand
     history_distances[ant_id] += matrix_distances[from * num_cities + to];
 }
 
+/**
+ *
+ * @param matrix_pheromones
+ * @param num_cities
+ */
 __global__ void evaporate_pheromone(double *matrix_pheromones, int num_cities)
 {
     unsigned int index = get_index();
@@ -380,6 +409,13 @@ __global__ void evaporate_pheromone(double *matrix_pheromones, int num_cities)
     }
 }
 
+/**
+ *
+ * @param matrix_pheromones
+ * @param history_distances
+ * @param history_tours
+ * @param num_cities
+ */
 __global__ void update_pheromone(double* matrix_pheromones, const double* history_distances, const int* history_tours, int num_cities)
 {
     unsigned int ant_id = get_index();
@@ -424,6 +460,13 @@ __global__ void update_pheromone(double* matrix_pheromones, const double* histor
     }
 }
 
+/**
+ *
+ * @param history_distances
+ * @param history_tours
+ * @param history_visited
+ * @param num_cities
+ */
 __global__ void reset_histories(double *history_distances, int *history_tours, int *history_visited, int num_cities)
 {
     unsigned int ant_id = get_index();

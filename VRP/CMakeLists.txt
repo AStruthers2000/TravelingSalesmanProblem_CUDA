@@ -11,10 +11,6 @@ set(CMAKE_CUDA_ARCHITECTURES 86)
 
 set(CUDA_SOURCES
         main.cu
-        #Utils/HelperFunctions.cu
-        #Utils/HelperFunctions.cuh
-        #Problem/ProblemInstance.cu
-        #Problem/ProblemInstance.cuh
         Algorithms/AntColony.cu
         Algorithms/AntColony.cuh
         ModelParameters.h

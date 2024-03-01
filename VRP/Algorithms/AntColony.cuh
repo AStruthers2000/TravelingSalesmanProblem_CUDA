@@ -16,7 +16,7 @@ typedef struct
 } Ant;
 
 
-int ACO_main();
+double ACO_main();
 
 __global__ void ACOPrint();
 
