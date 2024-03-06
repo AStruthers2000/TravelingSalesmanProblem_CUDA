@@ -4,8 +4,7 @@
 #include <iostream>
 #include <curand_kernel.h>
 
-//Ant* host_ants;
-//Ant* dev_ants;
+/********** Global memory **********/
 int cities;
 
 double* host_distances, *host_pheromones;
@@ -18,149 +17,19 @@ int* dev_toursHistory, *dev_visitedHistory;
 
 curandState* dev_curandStates;
 
-__device__ unsigned int get_index()
+/********** Main function **********/
+/**
+ *
+ * @param adj_mat
+ * @param size
+ * @return
+ */
+double ACO_main(double *adj_mat, int size)
 {
-    return blockDim.x * blockIdx.x + threadIdx.x;
-}
-
-__global__ void setup_curand_states(curandState* dev_states, unsigned long seed)
-{
-    unsigned int index = get_index();
-    if(index < NUM_ANTS)
-    {
-        curand_init(seed, index, 0, &dev_states[index]);
-    }
-}
-
-void allocate_memory()
-{
-    host_distances = (double*)(malloc(cities * cities * sizeof(double)));
-    host_pheromones = (double*)(malloc(cities * cities * sizeof(double)));
-    host_distancesHistory = (double*)(malloc(NUM_ANTS * sizeof(double)));
-
-    cudaMalloc(&dev_distances, cities * cities * sizeof(double));
-    cudaMalloc(&dev_pheromones, cities * cities * sizeof(double));
-    cudaMalloc(&dev_distancesHistory, NUM_ANTS * sizeof(double));
-    cudaMalloc(&dev_toursHistory, NUM_ANTS * cities * sizeof(int));
-    cudaMalloc(&dev_visitedHistory, NUM_ANTS * cities * sizeof(int));
-    cudaMalloc(&dev_curandStates, NUM_ANTS * sizeof(curandState));
-}
-
-void initialize_values()
-{
-    //randomly initialize distance matrix
-
-    double cheat[841] = {0, 107, 241, 190, 124, 80, 316, 76, 152, 157, 283, 133, 113, 297, 228, 129, 348, 276, 188, 150, 65, 341, 184, 67, 221, 169, 108, 45, 167,
-                     107, 0, 148, 137, 88, 127, 336, 183, 134, 95, 254, 180, 101, 234, 175, 176, 265, 199, 182, 67, 42, 278, 271, 146, 251, 105, 191, 139, 79,
-                     241, 148, 0, 374, 171, 259, 509, 317, 217, 232, 491, 312, 280, 391, 412, 349, 422, 356, 355, 204, 182, 435, 417, 292, 424, 116, 337, 273, 77,
-                     190, 137, 374, 0, 202, 234, 222, 192, 248, 42, 117, 287, 79, 107, 38, 121, 152, 86, 68, 70, 137, 151, 239, 135, 137, 242, 165, 228, 205,
-                     124, 88, 171, 202, 0, 61, 392, 202, 46, 160, 319, 112, 163, 322, 240, 232, 314, 287, 238, 155, 65, 366, 300, 175, 307, 57, 220, 121, 97,
-                     80, 127, 259, 234, 61, 0, 386, 141, 72, 167, 351, 55, 157, 331, 272, 226, 362, 296, 232, 164, 85, 375, 249, 147, 301, 118, 188, 60, 185,
-                     316, 336, 509, 222, 392, 386, 0, 233, 438, 254, 202, 439, 235, 254, 210, 187, 313, 266, 154, 282, 321, 298, 168, 249, 95, 437, 190, 314, 435,
-                     76, 183, 317, 192, 202, 141, 233, 0, 213, 188, 272, 193, 131, 302, 233, 98, 344, 289, 177, 216, 141, 346, 108, 57, 190, 245, 43, 81, 243,
-                     152, 134, 217, 248, 46, 72, 438, 213, 0, 206, 365, 89, 209, 368, 286, 278, 360, 333, 284, 201, 111, 412, 321, 221, 353, 72, 266, 132, 111,
-                     157, 95, 232, 42, 160, 167, 254, 188, 206, 0, 159, 220, 57, 149, 80, 132, 193, 127, 100, 28, 95, 193, 241, 131, 169, 200, 161, 189, 163,
-                     283, 254, 491, 117, 319, 351, 202, 272, 365, 159, 0, 404, 176, 106, 79, 161, 165, 141, 95, 187, 254, 103, 279, 215, 117, 359, 216, 308, 322,
-                     133, 180, 312, 287, 112, 55, 439, 193, 89, 220, 404, 0, 210, 384, 325, 279, 415, 349, 285, 217, 138, 428, 310, 200, 354, 169, 241, 112, 238,
-                     113, 101, 280, 79, 163, 157, 235, 131, 209, 57, 176, 210, 0, 186, 117, 75, 231, 165, 81, 85, 92, 230, 184, 74, 150, 208, 104, 158, 206,
-                     297, 234, 391, 107, 322, 331, 254, 302, 368, 149, 106, 384, 186, 0, 69, 191, 59, 35, 125, 167, 255, 44, 309, 245, 169, 327, 246, 335, 288,
-                     228, 175, 412, 38, 240, 272, 210, 233, 286, 80, 79, 325, 117, 69, 0, 122, 122, 56, 56, 108, 175, 113, 240, 176, 125, 280, 177, 266, 243,
-                     129, 176, 349, 121, 232, 226, 187, 98, 278, 132, 161, 279, 75, 191, 122, 0, 244, 178, 66, 160, 161, 235, 118, 62, 92, 277, 55, 155, 275,
-                     348, 265, 422, 152, 314, 362, 313, 344, 360, 193, 165, 415, 231, 59, 122, 244, 0, 66, 178, 198, 286, 77, 362, 287, 228, 358, 299, 380, 319,
-                     276, 199, 356, 86, 287, 296, 266, 289, 333, 127, 141, 349, 165, 35, 56, 178, 66, 0, 112, 132, 220, 79, 296, 232, 181, 292, 233, 314, 253,
-                     188, 182, 355, 68, 238, 232, 154, 177, 284, 100, 95, 285, 81, 125, 56, 66, 178, 112, 0, 128, 167, 169, 179, 120, 69, 283, 121, 213, 281,
-                     150, 67, 204, 70, 155, 164, 282, 216, 201, 28, 187, 217, 85, 167, 108, 160, 198, 132, 128, 0, 88, 211, 269, 159, 197, 172, 189, 182, 135,
-                     65, 42, 182, 137, 65, 85, 321, 141, 111, 95, 254, 138, 92, 255, 175, 161, 286, 220, 167, 88, 0, 299, 229, 104, 236, 110, 149, 97, 108,
-                     341, 278, 435, 151, 366, 375, 298, 346, 412, 193, 103, 428, 230, 44, 113, 235, 77, 79, 169, 211, 299, 0, 353, 289, 213, 371, 290, 379, 332,
-                     184, 271, 417, 239, 300, 249, 168, 108, 321, 241, 279, 310, 184, 309, 240, 118, 362, 296, 179, 269, 229, 353, 0, 121, 162, 345, 80, 189, 342,
-                     67, 146, 292, 135, 175, 147, 249, 57, 221, 131, 215, 200, 74, 245, 176, 62, 287, 232, 120, 159, 104, 289, 121, 0, 154, 220, 41, 93, 218,
-                     221, 251, 424, 137, 307, 301, 95, 190, 353, 169, 117, 354, 150, 169, 125, 92, 228, 181, 69, 197, 236, 213, 162, 154, 0, 352, 147, 247, 350,
-                     169, 105, 116, 242, 57, 118, 437, 245, 72, 200, 359, 169, 208, 327, 280, 277, 358, 292, 283, 172, 110, 371, 345, 220, 352, 0, 265, 178, 39,
-                     108, 191, 337, 165, 220, 188, 190, 43, 266, 161, 216, 241, 104, 246, 177, 55, 299, 233, 121, 189, 149, 290, 80, 41, 147, 265, 0, 124, 263,
-                     45, 139, 273, 228, 121, 60, 314, 81, 132, 189, 308, 112, 158, 335, 266, 155, 380, 314, 213, 182, 97, 379, 189, 93, 247, 178, 124, 0, 199,
-                     167, 79, 77, 205, 97, 185, 435, 243, 111, 163, 322, 238, 206, 288, 243, 275, 319, 253, 281, 135, 108, 332, 342, 218, 350, 39, 263, 199, 0};
-
-    /*
-    double cheat[25] = {0, 30.4138126514911, 46.09772228646444, 48.25971404805462, 37.53664875824692,
-                        30.4138126514911, 0, 30.0, 49.73932046178355, 59.61543424315552,
-                        46.09772228646444, 30.0, 0, 28.178005607210743, 55.44366510251645,
-                        48.25971404805462, 49.73932046178355, 28.178005607210743, 0, 36.05551275463989,
-                        37.53664875824692, 59.61543424315552, 55.44366510251645, 36.05551275463989, 0, };
-                        */
-    for(int i = 0; i < cities; i++)
-    {
-        for(int j = 0; j < cities; j++)
-        {
-            int index = i * cities + j;
-            host_distances[index] = cheat[index];
-            /*
-            if(i != j)
-            {
-                host_distances[index] = (double)(rand() % 100) + 1.0;
-            }
-            else
-            {
-                host_distances[index] = 0.0;
-            }
-             */
-        }
-    }
-
-    //initialize pheromone matrix to 1.0 as an arbitrary starting level
-    for(int i = 0; i < cities; i++)
-    {
-        for(int j = 0; j < cities; j++)
-        {
-            int index = i * cities + j;
-            if (i != j)
-            {
-                host_pheromones[index] = INIT_PHEROMONE_LEVEL;
-            }
-            else
-            {
-                host_pheromones[index] = 0.0;
-            }
-        }
-    }
-
-    cudaMemcpy(dev_distances, host_distances, cities * cities * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_pheromones, host_pheromones, cities * cities * sizeof(double), cudaMemcpyHostToDevice);
-}
-
-[[maybe_unused]] void print_matrix(const double* matrix, const char* msg)
-{
-    printf("%s: \n", msg);
-    for(int i = 0; i < cities; i++)
-    {
-        for(int j = 0; j < cities; j++)
-        {
-            printf("%2.2f\t", matrix[i * cities + j]);
-        }
-        printf("\n");
-    }
-}
-
-void free_memory()
-{
-    free(host_distances);
-    free(host_pheromones);
-    free(host_distancesHistory);
-
-    cudaFree(dev_distances);
-    cudaFree(dev_pheromones);
-    cudaFree(dev_distancesHistory);
-    cudaFree(dev_toursHistory);
-    cudaFree(dev_visitedHistory);
-    cudaFree(dev_curandStates);
-}
-
-
-double ACO_main()
-{
-    cities = 29;
+    cities = size;
 
     allocate_memory();
-    initialize_values();
+    initialize_values(adj_mat);
 
     //print_matrix(host_distances, "Distances");
     //print_matrix(host_pheromones, "Pheromones");
@@ -210,6 +79,7 @@ double ACO_main()
                                                                      dev_visitedHistory, cities);
             cudaDeviceSynchronize();
         }
+        //std::cout << "Iteration " << iter << " completed" << std::endl;
         //std::cout << "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-" << std::endl;
     }
 
@@ -225,53 +95,13 @@ double ACO_main()
     std::cout << "Minimum value: " << min << std::endl;
     free(host_dist);
 
-    /*
-    host_ants = (Ant*)(malloc(sizeof(Ant) * NUM_ANTS));
-    for(int i = 0; i < NUM_ANTS; i++)
-    {
-        Ant a;
-        a.tour = (int*)(malloc(sizeof(int) * cities));
-        for(int j = 0; j < cities; j++)
-        {
-            a.tour[j] = cities - j;
-        }
-        a.current_city = i;
-        host_ants[i] = a;
-        //free(a->tour);
-        //free(a);
-    }
-
-    cudaMalloc((void**)&dev_ants, sizeof(Ant) * NUM_ANTS);
-    for(int i = 0; i < NUM_ANTS; i++)
-    {
-        int* dev_tour;
-        cudaMalloc((void**)(&dev_tour), sizeof(int) * cities);
-        cudaMemcpy(dev_tour, host_ants[i].tour, sizeof(int) * cities, cudaMemcpyHostToDevice);
-
-        Ant temp_dev_ant = {host_ants[i].current_city, dev_tour, host_ants[i].distance};
-        cudaMemcpy(&dev_ants[i], &temp_dev_ant, sizeof(Ant), cudaMemcpyHostToDevice);
-    }
-
-    Test_PrintInitialAnts<<<GROUPS_OF_N_ANTS, THREADS_PER_BLOCK>>>(dev_ants);
-    cudaDeviceSynchronize();
-
-    for(int i = 0; i < NUM_ANTS; i++)
-    {
-        free(host_ants[i].tour);
-    }
-
-    free(host_ants);
-    cudaFree(dev_ants);
-
-    free(host_distances);
-    free(host_pheromones);
-     */
-
     free_memory();
     cudaDeviceReset();
     return min;
 }
 
+
+/********** Kernel calls **********/
 /**
  *
  * @param matrix_pheromones
@@ -479,4 +309,88 @@ __global__ void reset_histories(double *history_distances, int *history_tours, i
     }
 }
 
+
+/********** Memory allocation and deallocation **********/
+void allocate_memory()
+{
+    host_distances = (double*)(malloc(cities * cities * sizeof(double)));
+    host_pheromones = (double*)(malloc(cities * cities * sizeof(double)));
+    host_distancesHistory = (double*)(malloc(NUM_ANTS * sizeof(double)));
+
+    cudaMalloc(&dev_distances, cities * cities * sizeof(double));
+    cudaMalloc(&dev_pheromones, cities * cities * sizeof(double));
+    cudaMalloc(&dev_distancesHistory, NUM_ANTS * sizeof(double));
+    cudaMalloc(&dev_toursHistory, NUM_ANTS * cities * sizeof(int));
+    cudaMalloc(&dev_visitedHistory, NUM_ANTS * cities * sizeof(int));
+    cudaMalloc(&dev_curandStates, NUM_ANTS * sizeof(curandState));
+}
+
+void initialize_values(double *adj_mat)
+{
+    memcpy(host_distances, adj_mat, cities * cities * sizeof(double));
+    //print_matrix(host_distances, "Distances:");
+
+    //initialize pheromone matrix to INIT_PHEROMONE_LEVEL as an arbitrary starting level
+    for(int i = 0; i < cities; i++)
+    {
+        for(int j = 0; j < cities; j++)
+        {
+            int index = i * cities + j;
+            if (i != j)
+            {
+                host_pheromones[index] = INIT_PHEROMONE_LEVEL;
+            }
+            else
+            {
+                host_pheromones[index] = 0.0;
+            }
+        }
+    }
+
+    cudaMemcpy(dev_distances, host_distances, cities * cities * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_pheromones, host_pheromones, cities * cities * sizeof(double), cudaMemcpyHostToDevice);
+}
+
+void free_memory()
+{
+    free(host_distances);
+    free(host_pheromones);
+    free(host_distancesHistory);
+
+    cudaFree(dev_distances);
+    cudaFree(dev_pheromones);
+    cudaFree(dev_distancesHistory);
+    cudaFree(dev_toursHistory);
+    cudaFree(dev_visitedHistory);
+    cudaFree(dev_curandStates);
+}
+
+
+/********** Helper functions **********/
+__device__ unsigned int get_index()
+{
+    return blockDim.x * blockIdx.x + threadIdx.x;
+}
+
+__global__ void setup_curand_states(curandState* dev_states, unsigned long seed)
+{
+    unsigned int index = get_index();
+    if(index < NUM_ANTS)
+    {
+        curand_init(seed, index, 0, &dev_states[index]);
+    }
+}
+
+[[maybe_unused]] void print_matrix(const double* matrix, const char* msg)
+{
+    printf("%s: \n", msg);
+    for(int i = 0; i < cities; i++)
+    {
+        for(int j = 0; j < cities; j++)
+        {
+            printf("%2.2f\t", matrix[i * cities + j]);
+        }
+        printf("\n");
+    }
+}
 

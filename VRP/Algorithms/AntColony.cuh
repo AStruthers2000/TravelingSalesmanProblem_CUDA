@@ -7,21 +7,10 @@
 
 #include "../ModelParameters.h"
 
+//main function
+double ACO_main(double *adj_mat, int size);
 
-typedef struct
-{
-    int current_city;
-    int* tour;
-    double distance;
-} Ant;
-
-
-double ACO_main();
-
-__global__ void ACOPrint();
-
-__global__ void init_ants();
-
+//kernel calls
 __global__ void
 move_ant(const double *matrix_pheromones, const double *matrix_distances, curandStateXORWOW *states,
          double *history_distances, int *history_tours, int *history_visited, int num_cities);
@@ -29,9 +18,14 @@ __global__ void evaporate_pheromone(double *matrix_pheromones, int num_cities);
 __global__ void update_pheromone(double* matrix_pheromones, const double* history_distances, const int* history_tours, int num_cities);
 __global__ void reset_histories(double* history_distances, int* history_tours, int* history_visited, int num_cities);
 
-__global__ void Test_PrintInitialAnts(const Ant* ants);
+//CUDA helper functions
+__device__ unsigned int get_index();
+__global__ void setup_curand_states(curandState* dev_states, unsigned long seed);
+void print_matrix(const double* matrix, const char* msg);
 
-
-//double*
+//host memory allocation and deallocation functions
+void allocate_memory();
+void initialize_values(double *adj_mat);
+void free_memory();
 
 #endif //ant_colony_cu
