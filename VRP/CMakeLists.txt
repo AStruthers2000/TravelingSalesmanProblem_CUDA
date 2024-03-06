@@ -1,26 +1,3 @@
-cmake_minimum_required(VERSION 3.27)
-project(VRP LANGUAGES CUDA CXX)
-
-find_package(CUDAToolkit)
-
-set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda -g -lineinfo")
-set(CMAKE_CUDA_ARCHITECTURES 86)
-
-#include_directories(${CUDA_INCLUDE_DIRS})
-
-set(CUDA_SOURCES
-        main.cu
-        Algorithms/AntColony.cu
-        Algorithms/AntColony.cuh
-        ModelParameters.h
-)
-
-add_executable(VRP ${CUDA_SOURCES})
-
-#target_include_directories(VRP PRIVATE Utils Problem)
-target_include_directories(VRP PRIVATE Algorithms)
-#target_link_libraries(VRP PRIVATE CUDA::curand)
-
-set_target_properties(VRP PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON)
+version https://git-lfs.github.com/spec/v1
+oid sha256:8523dddda38134f96e458ce843290b863f3799576186e6b394cd99af24b38cb0
+size 700
