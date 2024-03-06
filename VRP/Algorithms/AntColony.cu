@@ -36,6 +36,7 @@ double ACO_main(double *adj_mat, int size)
 
     time_t seed;
     time(&seed);
+
     setup_curand_states<<<GROUPS_OF_N_ANTS, THREADS_PER_BLOCK>>>(dev_curandStates, (unsigned long) seed);
     cudaDeviceSynchronize();
 
