@@ -581,3 +581,4 @@ FodyWeavers.xsd
 *.sln.iml
 
 *.xml
+Build/

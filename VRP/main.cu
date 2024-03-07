@@ -22,9 +22,22 @@ void write_to_file(const string& problem, int experiment, double result, double 
 vector<string> split_string_by_token(const string& line, char token);
 
 
-int main()
+int main(int argc, char** argv)
 {
     string path = R"(.\Datasets\)";
+
+    int lower_size = 0;
+    int upper_size = numeric_limits<int>::max();
+
+    if(argc >= 3)
+    {
+        lower_size = stoi(argv[1]);
+        upper_size = stoi(argv[2]);
+    }
+    else if(argc == 2)
+    {
+        lower_size = stoi(argv[1]);
+    }
 
     namespace fs = std::filesystem;
     vector<string> filenames;
@@ -40,6 +53,7 @@ int main()
         if (regex_search(file, match, size_regex))
         {
             int size = stoi(match.str());
+            if(size < lower_size || size > upper_size) continue;
 
             auto adj_mat = (double *) malloc(size * size * sizeof(double));
             load_adjacency_matrix_from_file(entry.path().generic_string(), size, adj_mat);
