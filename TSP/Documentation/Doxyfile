@@ -54,7 +54,7 @@ PROJECT_NUMBER         =
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "The primary objective of this project is to explore the potential of Ant Colony Optimization (ACO), a metaheuristic inspired by the foraging behavior of ants, in solving the Travelling Salesman Problem (TSP) using Compute Unified Device Architecture (CUDA). The goal of this project is to demonstrate the feasibility and advantages of using GPGPU-based parallel computing in solving complex combinatorial optimization problems.  By harnessing the parallel processing capabilities of CUDA, we seek to develop an efficient parallel implementation of ACO for TSP solving on GPGPUs, aiming to significantly reduce the computational time required to find near-optimal solutions for large-scale instances of the problem."
+PROJECT_BRIEF          = "Using Ant Colony Optimization (ACO) to solve large Traveling Salesman Problem (TSP) instancecs using CUDA"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
