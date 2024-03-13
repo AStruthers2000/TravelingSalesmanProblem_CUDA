@@ -10,4 +10,4 @@ The EXE accepts one or two additional command line arguments. The following synt
 
 In case 1, the EXE runs and all valid TSP instance files stored in the \Datasets\ folder are attempted. In case 2, all problem instances of size >= 10 are run. In case 3, all problem instances of size 10 <= problem size <= 100 are run. This allows you to bound the range of the runs to enable testing of specific files or specific subsets of files. The range is inclusive, so you can run exactly 1 problem instance by specifying "VRP.exe 3038 3038", which will run problem instances of only size = 3038. 
 
-[The documentation can be found here](https://astruthers2000.github.io/TravelingSalesmanProblem_CUDA/)
+[The documentation can be found here](https://astruthers2000.github.io/TravelingSalesmanProblem_CUDA/){:target="_blank"}
