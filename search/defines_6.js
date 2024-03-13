@@ -1,4 +1,0 @@
-var searchData=
-[
-  ['rho_0',['RHO',['../_model_parameters_8h.html#a3bf4402b9e2ae88e4462c3689f5d22b8',1,'ModelParameters.h']]]
-];
