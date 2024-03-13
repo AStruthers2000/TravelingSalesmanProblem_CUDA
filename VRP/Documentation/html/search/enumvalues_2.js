@@ -1,0 +1,5 @@
+var searchData=
+[
+  ['major_5fversion_0',['major_version',['../_c_make_c_u_d_a_compiler_id_8cpp1_8ii.html#acc52faa6c72ebb83dc23b0d9cbf89acba3248fd09eb2284413962ff5033bf94a6',1,'MAJOR_VERSION:&#160;CMakeCUDACompilerId.cpp1.ii'],['../_c_make_c_u_d_a_compiler_id_8cpp4_8ii.html#acc52faa6c72ebb83dc23b0d9cbf89acba3248fd09eb2284413962ff5033bf94a6',1,'MAJOR_VERSION:&#160;CMakeCUDACompilerId.cpp4.ii'],['../_c_make_c_u_d_a_compiler_id_8cudafe1_8cpp.html#acc52faa6c72ebb83dc23b0d9cbf89acba3248fd09eb2284413962ff5033bf94a6',1,'MAJOR_VERSION:&#160;CMakeCUDACompilerId.cudafe1.cpp']]],
+  ['minor_5fversion_1',['minor_version',['../_c_make_c_u_d_a_compiler_id_8cpp1_8ii.html#acc52faa6c72ebb83dc23b0d9cbf89acba6243ca712843ccd24aa88cbaffa44918',1,'MINOR_VERSION:&#160;CMakeCUDACompilerId.cpp1.ii'],['../_c_make_c_u_d_a_compiler_id_8cpp4_8ii.html#acc52faa6c72ebb83dc23b0d9cbf89acba6243ca712843ccd24aa88cbaffa44918',1,'MINOR_VERSION:&#160;CMakeCUDACompilerId.cpp4.ii'],['../_c_make_c_u_d_a_compiler_id_8cudafe1_8cpp.html#acc52faa6c72ebb83dc23b0d9cbf89acba6243ca712843ccd24aa88cbaffa44918',1,'MINOR_VERSION:&#160;CMakeCUDACompilerId.cudafe1.cpp']]]
+];

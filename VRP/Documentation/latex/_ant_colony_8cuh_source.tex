@@ -1,0 +1,37 @@
+\doxysection{Ant\+Colony.\+cuh}
+\hypertarget{_ant_colony_8cuh_source}{}\label{_ant_colony_8cuh_source}\index{Algorithms/AntColony.cuh@{Algorithms/AntColony.cuh}}
+\mbox{\hyperlink{_ant_colony_8cuh}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00001}00001\ \#ifndef\ ant\_colony\_cu}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00002}00002\ \#define\ ant\_colony\_cu}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00003}00003\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00004}00004\ \#include\ <curand\_kernel.h>}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00005}00005\ \#include\ "{}cuda\_runtime.h"{}}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00006}00006\ \#include\ "{}device\_launch\_parameters.h"{}}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00007}00007\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00008}00008\ \#include\ "{}../ModelParameters.h"{}}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00009}00009\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00010}00010\ //main\ function}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00011}00011\ double\ ACO\_main(double\ *adj\_mat,\ int\ size);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00012}00012\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00013}00013\ //kernel\ calls}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00014}00014\ \_\_global\_\_\ void}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00015}00015\ move\_ant(const\ double\ *matrix\_pheromones,\ const\ double\ *matrix\_distances,\ curandStateXORWOW\ *states,}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00016}00016\ \ \ \ \ \ \ \ \ \ double\ *history\_distances,\ int\ *history\_tours,\ int\ *history\_visited,\ int\ num\_cities);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00017}00017\ \_\_global\_\_\ void\ evaporate\_pheromone(double\ *matrix\_pheromones,\ int\ num\_cities);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00018}00018\ \_\_global\_\_\ void\ update\_pheromone(double*\ matrix\_pheromones,\ const\ double*\ history\_distances,\ const\ int*\ history\_tours,\ int\ num\_cities);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00019}00019\ \_\_global\_\_\ void\ reset\_histories(double*\ history\_distances,\ int*\ history\_tours,\ int*\ history\_visited,\ int\ num\_cities);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00020}00020\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00021}00021\ //CUDA\ helper\ functions}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00022}00022\ \_\_device\_\_\ unsigned\ int\ get\_index();}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00023}00023\ \_\_global\_\_\ void\ setup\_curand\_states(curandState*\ dev\_states,\ unsigned\ long\ seed);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00024}00024\ void\ print\_matrix(const\ double*\ matrix,\ const\ char*\ msg);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00025}00025\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00026}00026\ //host\ memory\ allocation\ and\ deallocation\ functions}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00027}00027\ void\ allocate\_memory();}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00028}00028\ void\ initialize\_values(double\ *adj\_mat);}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00029}00029\ void\ free\_memory();}
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00030}00030\ }
+\DoxyCodeLine{\Hypertarget{_ant_colony_8cuh_source_l00031}00031\ \#endif\ //ant\_colony\_cu}
+
+\end{DoxyCode}
