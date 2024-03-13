@@ -1,0 +1,116 @@
+\doxysection{TSP/\+Model\+Parameters.h File Reference}
+\hypertarget{ModelParameters_8h}{}\label{ModelParameters_8h}\index{TSP/ModelParameters.h@{TSP/ModelParameters.h}}
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_a869bf6501bf4809f3de1db59ef2dd914}{THREADS\+\_\+\+PER\+\_\+\+BLOCK}}~512
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_a46395e65995c167d8ce6e234b2f8912f}{GROUPS\+\_\+\+OF\+\_\+\+N\+\_\+\+ANTS}}~80
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_a8d7114d1439b8bf84f84d84b6a5e99d5}{NUM\+\_\+\+ANTS}}~(\mbox{\hyperlink{ModelParameters_8h_a46395e65995c167d8ce6e234b2f8912f}{GROUPS\+\_\+\+OF\+\_\+\+N\+\_\+\+ANTS}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{ModelParameters_8h_a869bf6501bf4809f3de1db59ef2dd914}{THREADS\+\_\+\+PER\+\_\+\+BLOCK}})
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_af5abd28c44c29b7397c84f1fec4b1d84}{ALPHA}}~1.\+0
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_a1b996515309fc3c03449912bb33046e3}{BETA}}~4.\+0
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_a3bf4402b9e2ae88e4462c3689f5d22b8}{RHO}}~0.\+4
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_acbcee443d6d55cb8600b3f240f5cf907}{Q}}~100.\+0
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_ab3be0641eb76161a48ed528e6eea2ac3}{NUM\+\_\+\+ITERATIONS}}~100
+\item 
+\#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} \mbox{\hyperlink{ModelParameters_8h_a5d3b9a1c78242b9ccbbd7a69ec287dd8}{INIT\+\_\+\+PHEROMONE\+\_\+\+LEVEL}}~10.\+0
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{ModelParameters_8h_af5abd28c44c29b7397c84f1fec4b1d84}\label{ModelParameters_8h_af5abd28c44c29b7397c84f1fec4b1d84} 
+\index{ModelParameters.h@{ModelParameters.h}!ALPHA@{ALPHA}}
+\index{ALPHA@{ALPHA}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{ALPHA}{ALPHA}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} ALPHA~1.\+0}
+
+Pheromone importance 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00008}{8}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_a1b996515309fc3c03449912bb33046e3}\label{ModelParameters_8h_a1b996515309fc3c03449912bb33046e3} 
+\index{ModelParameters.h@{ModelParameters.h}!BETA@{BETA}}
+\index{BETA@{BETA}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{BETA}{BETA}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} BETA~4.\+0}
+
+Heuristic importance 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00009}{9}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_a46395e65995c167d8ce6e234b2f8912f}\label{ModelParameters_8h_a46395e65995c167d8ce6e234b2f8912f} 
+\index{ModelParameters.h@{ModelParameters.h}!GROUPS\_OF\_N\_ANTS@{GROUPS\_OF\_N\_ANTS}}
+\index{GROUPS\_OF\_N\_ANTS@{GROUPS\_OF\_N\_ANTS}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{GROUPS\_OF\_N\_ANTS}{GROUPS\_OF\_N\_ANTS}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} GROUPS\+\_\+\+OF\+\_\+\+N\+\_\+\+ANTS~80}
+
+Number of groups of THREADS\+\_\+\+PER\+\_\+\+BLOCK ants. Recommended to be \texorpdfstring{$>$}{>}= to cuda\+Device\+Prop.\+multi\+Processor\+Count to fully utilize GPU 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00005}{5}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_a5d3b9a1c78242b9ccbbd7a69ec287dd8}\label{ModelParameters_8h_a5d3b9a1c78242b9ccbbd7a69ec287dd8} 
+\index{ModelParameters.h@{ModelParameters.h}!INIT\_PHEROMONE\_LEVEL@{INIT\_PHEROMONE\_LEVEL}}
+\index{INIT\_PHEROMONE\_LEVEL@{INIT\_PHEROMONE\_LEVEL}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{INIT\_PHEROMONE\_LEVEL}{INIT\_PHEROMONE\_LEVEL}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} INIT\+\_\+\+PHEROMONE\+\_\+\+LEVEL~10.\+0}
+
+Initial pheromone level that is deposited before ants start traversing the graph 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00015}{15}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_a8d7114d1439b8bf84f84d84b6a5e99d5}\label{ModelParameters_8h_a8d7114d1439b8bf84f84d84b6a5e99d5} 
+\index{ModelParameters.h@{ModelParameters.h}!NUM\_ANTS@{NUM\_ANTS}}
+\index{NUM\_ANTS@{NUM\_ANTS}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{NUM\_ANTS}{NUM\_ANTS}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} NUM\+\_\+\+ANTS~(\mbox{\hyperlink{ModelParameters_8h_a46395e65995c167d8ce6e234b2f8912f}{GROUPS\+\_\+\+OF\+\_\+\+N\+\_\+\+ANTS}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{ModelParameters_8h_a869bf6501bf4809f3de1db59ef2dd914}{THREADS\+\_\+\+PER\+\_\+\+BLOCK}})}
+
+Total number of ants (blocks \texorpdfstring{$\ast$}{*} threads per block) 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00006}{6}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_ab3be0641eb76161a48ed528e6eea2ac3}\label{ModelParameters_8h_ab3be0641eb76161a48ed528e6eea2ac3} 
+\index{ModelParameters.h@{ModelParameters.h}!NUM\_ITERATIONS@{NUM\_ITERATIONS}}
+\index{NUM\_ITERATIONS@{NUM\_ITERATIONS}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{NUM\_ITERATIONS}{NUM\_ITERATIONS}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} NUM\+\_\+\+ITERATIONS~100}
+
+Number of iterations for ants to run 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00013}{13}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_acbcee443d6d55cb8600b3f240f5cf907}\label{ModelParameters_8h_acbcee443d6d55cb8600b3f240f5cf907} 
+\index{ModelParameters.h@{ModelParameters.h}!Q@{Q}}
+\index{Q@{Q}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{Q}{Q}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} Q~100.\+0}
+
+Pheromone deposit factor 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00011}{11}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_a3bf4402b9e2ae88e4462c3689f5d22b8}\label{ModelParameters_8h_a3bf4402b9e2ae88e4462c3689f5d22b8} 
+\index{ModelParameters.h@{ModelParameters.h}!RHO@{RHO}}
+\index{RHO@{RHO}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{RHO}{RHO}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} RHO~0.\+4}
+
+Evaporation rate 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00010}{10}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
+\Hypertarget{ModelParameters_8h_a869bf6501bf4809f3de1db59ef2dd914}\label{ModelParameters_8h_a869bf6501bf4809f3de1db59ef2dd914} 
+\index{ModelParameters.h@{ModelParameters.h}!THREADS\_PER\_BLOCK@{THREADS\_PER\_BLOCK}}
+\index{THREADS\_PER\_BLOCK@{THREADS\_PER\_BLOCK}!ModelParameters.h@{ModelParameters.h}}
+\doxysubsubsection{\texorpdfstring{THREADS\_PER\_BLOCK}{THREADS\_PER\_BLOCK}}
+{\footnotesize\ttfamily \#\mbox{\hyperlink{AntColony_8cu_ace5d2dbc52193d125be3ec4a13c5c192}{define}} THREADS\+\_\+\+PER\+\_\+\+BLOCK~512}
+
+Should be some power of 2, no greater than cuda\+Device\+Prop.\+max\+Threads\+Per\+Block 
+
+Definition at line \mbox{\hyperlink{ModelParameters_8h_source_l00004}{4}} of file \mbox{\hyperlink{ModelParameters_8h_source}{Model\+Parameters.\+h}}.
+
